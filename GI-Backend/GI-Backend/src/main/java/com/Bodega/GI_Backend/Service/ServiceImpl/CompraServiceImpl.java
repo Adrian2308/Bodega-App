@@ -31,8 +31,19 @@ public class CompraServiceImpl implements CompraService {
 
     @Override
     public List<Compra> obtenerTodasLasCompras() {
-        return compraRepository.findAll();
+        LocalDate today = LocalDate.now(); // Fecha actual
+        return compraRepository.findAll().stream()
+                .filter(compra -> compra.isEstado() && compra.getFechaCompra().toLocalDate().isEqual(today))
+                .collect(Collectors.toList());
     }
+
+    @Override
+    public List<Compra> obtenerComprasAnuladas() {
+        return compraRepository.findAll().stream()
+                .filter(compra -> !compra.isEstado()) // Solo compras anuladas
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     public Optional<Compra> obtenerCompraPorId(int compraId) {
@@ -107,6 +118,24 @@ public class CompraServiceImpl implements CompraService {
     @Override
     public boolean anularCompra(int compraId) {
         return compraRepository.findById(compraId).map(compra -> {
+            if (!compra.isEstado()) {
+                throw new RuntimeException("La compra ya está anulada.");
+            }
+
+            // Restar del stock los productos de la compra
+            for (DetalleCompra detalle : compra.getDetallesCompra()) {
+                Producto producto = detalle.getProducto();
+                producto.setStock(producto.getStock() - detalle.getCantidad());
+                
+                // Asegurar que el stock no sea negativo
+                if (producto.getStock() < 0) {
+                    producto.setStock(0);
+                }
+
+                productoRepository.save(producto);
+            }
+
+            // Anular la compra
             compra.setEstado(false);
             compraRepository.save(compra);
             return true;
