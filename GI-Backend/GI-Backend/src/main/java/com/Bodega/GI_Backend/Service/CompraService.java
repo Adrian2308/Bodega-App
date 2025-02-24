@@ -7,7 +7,9 @@ import java.util.Optional;
 
 public interface CompraService {
     List<Compra> obtenerTodasLasCompras();
-    List<Compra> obtenerComprasAnuladas();
+    List<Compra> obtenerComprasAnuladas(); 
+    List<Compra> obtenerComprasAnuladasPorFecha(LocalDate fecha);
+    List<Compra> obtenerComprasAnuladasPorRangoFechas(LocalDate fechaInicio, LocalDate fechaFin);
     Optional<Compra> obtenerCompraPorId(int compraId);
     List<Compra> obtenerComprasPorFecha(LocalDate fecha);
     List<Compra> obtenerComprasPorRangoFechas(LocalDate fechaInicio, LocalDate fechaFin);

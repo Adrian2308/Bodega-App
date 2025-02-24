@@ -31,16 +31,52 @@ public class CompraServiceImpl implements CompraService {
 
     @Override
     public List<Compra> obtenerTodasLasCompras() {
-        LocalDate today = LocalDate.now(); // Fecha actual
+        LocalDate today = LocalDate.now();
         return compraRepository.findAll().stream()
                 .filter(compra -> compra.isEstado() && compra.getFechaCompra().toLocalDate().isEqual(today))
                 .collect(Collectors.toList());
     }
 
     @Override
+    public List<Compra> obtenerComprasPorFecha(LocalDate fecha) {
+        return compraRepository.findAll().stream()
+                .filter(compra -> compra.isEstado() && compra.getFechaCompra().toLocalDate().isEqual(fecha))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Compra> obtenerComprasPorRangoFechas(LocalDate fechaInicio, LocalDate fechaFin) {
+        return compraRepository.findAll().stream()
+                .filter(compra -> compra.isEstado())
+                .filter(compra -> {
+                    LocalDate fechaCompra = compra.getFechaCompra().toLocalDate();
+                    return !fechaCompra.isBefore(fechaInicio) && !fechaCompra.isAfter(fechaFin);
+                })
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<Compra> obtenerComprasAnuladasPorFecha(LocalDate fecha) {
+        return compraRepository.findAll().stream()
+                .filter(compra -> !compra.isEstado() && compra.getFechaCompra().toLocalDate().isEqual(fecha))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Compra> obtenerComprasAnuladasPorRangoFechas(LocalDate fechaInicio, LocalDate fechaFin) {
+        return compraRepository.findAll().stream()
+                .filter(compra -> !compra.isEstado()) 
+                .filter(compra -> {
+                    LocalDate fechaCompra = compra.getFechaCompra().toLocalDate();
+                    return !fechaCompra.isBefore(fechaInicio) && !fechaCompra.isAfter(fechaFin);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<Compra> obtenerComprasAnuladas() {
         return compraRepository.findAll().stream()
-                .filter(compra -> !compra.isEstado()) // Solo compras anuladas
+                .filter(compra -> !compra.isEstado())
                 .collect(Collectors.toList());
     }
 
@@ -50,22 +86,6 @@ public class CompraServiceImpl implements CompraService {
         return compraRepository.findById(compraId);
     }
 
-    @Override
-    public List<Compra> obtenerComprasPorFecha(LocalDate fecha) {
-        return compraRepository.findAll().stream()
-                .filter(compra -> compra.getFechaCompra().toLocalDate().isEqual(fecha))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<Compra> obtenerComprasPorRangoFechas(LocalDate fechaInicio, LocalDate fechaFin) {
-        return compraRepository.findAll().stream()
-                .filter(compra -> {
-                    LocalDate fechaCompra = compra.getFechaCompra().toLocalDate();
-                    return !fechaCompra.isBefore(fechaInicio) && !fechaCompra.isAfter(fechaFin);
-                })
-                .collect(Collectors.toList());
-    }
 
     @Override
     public Compra crearCompra(Compra compra) {

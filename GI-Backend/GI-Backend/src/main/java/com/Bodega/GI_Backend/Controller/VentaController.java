@@ -1,6 +1,7 @@
 package com.Bodega.GI_Backend.Controller;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,14 +28,14 @@ public class VentaController {
     @Autowired
     private VentaService ventaService;
 
- // Obtener todas las Ventas
+    // Obtener todas las ventas del día
     @GetMapping
-    public ResponseEntity<List<Venta>> obtenerTodasLasVentas() {
+    public ResponseEntity<List<Venta>> obtenerVentasDelDia() {
         List<Venta> ventas = ventaService.obtenerTodasLasVentas();
         return ResponseEntity.ok(ventas);
     }
 
-    // Obtener una Venta por ID
+    // Obtener una venta por ID
     @GetMapping("/{id}")
     public ResponseEntity<Venta> obtenerVentaPorId(@PathVariable int id) {
         Optional<Venta> venta = ventaService.obtenerVentaPorId(id);
@@ -42,33 +43,75 @@ public class VentaController {
                      .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // Obtener Ventas por una fecha específica
+    // Obtener ventas por una fecha específica
     @GetMapping("/fecha/{fecha}")
     public ResponseEntity<List<Venta>> obtenerVentasPorFecha(@PathVariable String fecha) {
-        LocalDate fechaConvertida = LocalDate.parse(fecha);
-        List<Venta> ventas = ventaService.obtenerVentasPorFecha(fechaConvertida);
-        return ResponseEntity.ok(ventas);
+        try {
+            LocalDate fechaConvertida = LocalDate.parse(fecha);
+            List<Venta> ventas = ventaService.obtenerVentasPorFecha(fechaConvertida);
+            return ResponseEntity.ok(ventas);
+        } catch (DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
     }
 
-    // Obtener Ventas por un rango de fechas
+    // Obtener ventas por un rango de fechas
     @GetMapping("/rango")
     public ResponseEntity<List<Venta>> obtenerVentasPorRangoFechas(
             @RequestParam String inicio,
             @RequestParam String fin) {
-        LocalDate fechaInicio = LocalDate.parse(inicio);
-        LocalDate fechaFin = LocalDate.parse(fin);
-        List<Venta> ventas = ventaService.obtenerVentasPorRangoFechas(fechaInicio, fechaFin);
-        return ResponseEntity.ok(ventas);
+        try {
+            LocalDate fechaInicio = LocalDate.parse(inicio);
+            LocalDate fechaFin = LocalDate.parse(fin);
+            List<Venta> ventas = ventaService.obtenerVentasPorRangoFechas(fechaInicio, fechaFin);
+            return ResponseEntity.ok(ventas);
+        } catch (DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
     }
 
-    // Registrar una nueva Venta
+    // Obtener ventas anuladas del día
+    @GetMapping("/anuladas")
+    public ResponseEntity<List<Venta>> obtenerVentasAnuladasDelDia() {
+        List<Venta> ventasAnuladas = ventaService.obtenerVentasAnuladas();
+        return ResponseEntity.ok(ventasAnuladas);
+    }
+
+    // Obtener ventas anuladas por una fecha específica
+    @GetMapping("/anuladas/fecha/{fecha}")
+    public ResponseEntity<List<Venta>> obtenerVentasAnuladasPorFecha(@PathVariable String fecha) {
+        try {
+            LocalDate fechaConvertida = LocalDate.parse(fecha);
+            List<Venta> ventas = ventaService.obtenerVentasAnuladasPorFecha(fechaConvertida);
+            return ResponseEntity.ok(ventas);
+        } catch (DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    // Obtener ventas anuladas por un rango de fechas
+    @GetMapping("/anuladas/rango")
+    public ResponseEntity<List<Venta>> obtenerVentasAnuladasPorRangoFechas(
+            @RequestParam String inicio,
+            @RequestParam String fin) {
+        try {
+            LocalDate fechaInicio = LocalDate.parse(inicio);
+            LocalDate fechaFin = LocalDate.parse(fin);
+            List<Venta> ventas = ventaService.obtenerVentasAnuladasPorRangoFechas(fechaInicio, fechaFin);
+            return ResponseEntity.ok(ventas);
+        } catch (DateTimeParseException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    // Registrar una nueva venta
     @PostMapping("/ingresar")
     public ResponseEntity<Venta> crearVenta(@RequestBody Venta venta) {
         Venta nuevaVenta = ventaService.crearVenta(venta);
         return ResponseEntity.ok(nuevaVenta);
     }
 
-    // Anular una Venta (cambiar estado a false)
+    // Anular una venta (cambiar estado a false)
     @PutMapping("/anular/{id}")
     public ResponseEntity<String> anularVenta(@PathVariable int id) {
         boolean anulado = ventaService.anularVenta(id);

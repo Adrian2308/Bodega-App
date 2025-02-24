@@ -26,24 +26,41 @@ public class VentaServiceImpl implements VentaService {
 
     @Override
     public List<Venta> obtenerTodasLasVentas() {
-        return ventaRepository.findAll();
-    }
-
-    @Override
-    public Optional<Venta> obtenerVentaPorId(int ventaId) {
-        return ventaRepository.findById(ventaId);
+        LocalDate today = LocalDate.now();
+        return ventaRepository.findAll().stream()
+                .filter(venta -> venta.isEstado() && venta.getFechaVenta().toLocalDate().isEqual(today))
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<Venta> obtenerVentasPorFecha(LocalDate fecha) {
         return ventaRepository.findAll().stream()
-                .filter(venta -> venta.getFechaVenta().toLocalDate().isEqual(fecha))
+                .filter(venta -> venta.isEstado() && venta.getFechaVenta().toLocalDate().isEqual(fecha))
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<Venta> obtenerVentasPorRangoFechas(LocalDate fechaInicio, LocalDate fechaFin) {
         return ventaRepository.findAll().stream()
+                .filter(venta -> venta.isEstado())
+                .filter(venta -> {
+                    LocalDate fechaVenta = venta.getFechaVenta().toLocalDate();
+                    return !fechaVenta.isBefore(fechaInicio) && !fechaVenta.isAfter(fechaFin);
+                })
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<Venta> obtenerVentasAnuladasPorFecha(LocalDate fecha) {
+        return ventaRepository.findAll().stream()
+                .filter(venta -> !venta.isEstado() && venta.getFechaVenta().toLocalDate().isEqual(fecha))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Venta> obtenerVentasAnuladasPorRangoFechas(LocalDate fechaInicio, LocalDate fechaFin) {
+        return ventaRepository.findAll().stream()
+                .filter(venta -> !venta.isEstado()) // Solo ventas anuladas
                 .filter(venta -> {
                     LocalDate fechaVenta = venta.getFechaVenta().toLocalDate();
                     return !fechaVenta.isBefore(fechaInicio) && !fechaVenta.isAfter(fechaFin);
@@ -52,7 +69,22 @@ public class VentaServiceImpl implements VentaService {
     }
 
     @Override
+    public List<Venta> obtenerVentasAnuladas() {
+        return ventaRepository.findAll().stream()
+                .filter(venta -> !venta.isEstado()) // Solo ventas anuladas
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
+    public Optional<Venta> obtenerVentaPorId(int ventaId) {
+        return ventaRepository.findById(ventaId);
+    }
+
+
+    @Override
     public Venta crearVenta(Venta venta) {
+
         // Asignar la fecha actual si no está definida
         if (venta.getFechaVenta() == null) {
             venta.setFechaVenta(LocalDateTime.now());
@@ -70,11 +102,6 @@ public class VentaServiceImpl implements VentaService {
                 }
                 Producto producto = productoOpt.get();
 
-                // Verificar si hay stock suficiente
-                if (producto.getStock() < detalle.getCantidad()) {
-                    throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombreProducto());
-                }
-
                 // Asignar datos correctos al detalle
                 detalle.setProducto(producto);
                 detalle.setPrecioVenta(producto.getPrecioVenta());
@@ -85,8 +112,8 @@ public class VentaServiceImpl implements VentaService {
                 totalVenta += detalle.getSubtotal();
 
                 // **Actualizar stock del producto**
-                producto.setStock(producto.getStock() - detalle.getCantidad());
-                productoRepository.save(producto);
+                producto.setStock(producto.getStock() + detalle.getCantidad());
+                productoRepository.save(producto); // Guardar el producto con el nuevo stock
             }
         }
 
@@ -100,6 +127,24 @@ public class VentaServiceImpl implements VentaService {
     @Override
     public boolean anularVenta(int ventaId) {
         return ventaRepository.findById(ventaId).map(venta -> {
+            if (!venta.isEstado()) {
+                throw new RuntimeException("La venta ya está anulada.");
+            }
+
+            // Restar del stock los productos de la venta
+            for (DetalleVenta detalle : venta.getDetallesVenta()) {
+                Producto producto = detalle.getProducto();
+                producto.setStock(producto.getStock() - detalle.getCantidad());
+                
+                // Asegurar que el stock no sea negativo
+                if (producto.getStock() < 0) {
+                    producto.setStock(0);
+                }
+
+                productoRepository.save(producto);
+            }
+
+            // Anular la venta
             venta.setEstado(false);
             ventaRepository.save(venta);
             return true;
