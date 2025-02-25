@@ -131,10 +131,10 @@ public class VentaServiceImpl implements VentaService {
                 throw new RuntimeException("La venta ya está anulada.");
             }
 
-            // Restar del stock los productos de la venta
+            // Sumar del stock los productos de la venta
             for (DetalleVenta detalle : venta.getDetallesVenta()) {
                 Producto producto = detalle.getProducto();
-                producto.setStock(producto.getStock() - detalle.getCantidad());
+                producto.setStock(producto.getStock() + detalle.getCantidad());
                 
                 // Asegurar que el stock no sea negativo
                 if (producto.getStock() < 0) {
